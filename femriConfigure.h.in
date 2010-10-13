@@ -1,0 +1,13 @@
+/* 
+ * Here is where system computed values get stored.
+ * These values should only change when the target compile platform changes.
+ */
+
+#cmakedefine FEMRI_BUILD_SHARED_LIBS
+#ifndef FEMRI_BUILD_SHARED_LIBS
+#define FEMRI_STATIC
+#endif
+
+#if defined(_MSC_VER) && !defined(FEMRI_STATIC)
+#pragma warning ( disable : 4275 )
+#endif
