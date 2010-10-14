@@ -32,7 +32,7 @@ class femriImageToKSpace(pypes.pypeScript):
 
         self.SetScriptName('femriimagetokspace')
         self.SetInputMembers([
-            ['Image','o','vtkImageData',1,'','','vmtkimagereader'],
+            ['Image','i','vtkImageData',1,'','','vmtkimagereader'],
             ['KSpaceDimensionality','dimensionality','int',1,'(2,3)']
             ])
         self.SetOutputMembers([
