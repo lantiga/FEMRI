@@ -32,6 +32,8 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         
         self.MagnetizationValue = 1.0
 
+        self.UseExactAlgorithm = True
+
         self.QuadratureOrder = 1
         self.NumberOfSubdivisions = 0
         self.UseOptimalAlgorithm = 0
@@ -41,6 +43,7 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         self.SetInputMembers([
             ['Surface','i','vtkPolyData',1,'','','vmtksurfacereader'],
             ['MagnetizationValue','magnetizationvalue','float',1],
+            ['UseExactAlgorithm','useexact','bool',1],
             ['QuadratureOrder','qorder','int',1,'(0,)'],
             ['UseOptimalAlgorithm','useoptimal','bool',1],
             ['ErrorThreshold','error','float',1,'(0.0,)']
@@ -48,7 +51,20 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         self.SetOutputMembers([
             ])
 
-    def AcquireKSpace(self,surface,origin,spacing):
+    def AcquireKSpaceExact(self,surface,origin,spacing):
+        kSpaceAcquisition = femrinumeric.vtkfemriPolyDataExactKSpaceGenerator()
+        kSpaceAcquisition.SetInput(self.Surface)
+        kSpaceAcquisition.SetKSpaceDimensionality(self.KSpaceDimensionality)
+        kSpaceAcquisition.SetMatrix(self.MatrixSize)
+        kSpaceAcquisition.SetFOV(self.FOV)
+        kSpaceAcquisition.SetOrigin(origin)
+        kSpaceAcquisition.SetAcquireSymmetricKSpace(self.AcquireSymmetricKSpace)
+        kSpaceAcquisition.SetMagnetizationValue(self.MagnetizationValue)
+        kSpaceAcquisition.Update()
+
+        return kSpaceAcquisition.GetOutput()
+
+    def AcquireKSpaceNumeric(self,surface,origin,spacing):
         
         kSpaceAcquisition = femrinumeric.vtkfemriPolyDataNumericKSpaceGenerator()
         kSpaceAcquisition.SetInput(self.Surface)
@@ -85,7 +101,10 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
                    self.FOV[1] / self.MatrixSize[1],
                    self.FOV[2] / self.MatrixSize[2]]
 
-        acquiredKSpace = self.AcquireKSpace(self.Surface,origin,spacing)
+        if self.UseExactAlgorithm:
+            acquiredKSpace = self.AcquireKSpaceExact(self.Surface,origin,spacing)
+        else:
+            acquiredKSpace = self.AcquireKSpaceNumeric(self.Surface,origin,spacing)
 
         self.KSpace = self.ComputeKSpaceOperation(acquiredKSpace)
 
