@@ -5,6 +5,7 @@ SET(FEMRI_NUMERIC_SRCS
 #  vtkSubdivideSelectQuadraticTetra.cxx
   vtkfemriUnstructuredGridNumericKSpaceGenerator.cxx
   vtkfemriPolyDataExactKSpaceGenerator.cxx
+  vtkfemriPolyDataExactKSpaceGeneratorMonolithic.cxx
   vtkfemriPolyDataNumericKSpaceGenerator.cxx
   vtkfemriGaussQuadrature.cxx
   vtkfemriOptimalQuadratureOrderCalculator.cxx
