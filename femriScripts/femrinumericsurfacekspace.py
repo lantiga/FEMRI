@@ -37,6 +37,7 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         self.QuadratureOrder = 1
         self.NumberOfSubdivisions = 0
         self.UseOptimalAlgorithm = 0
+        self.UseMonolithic = 0
         self.ErrorThreshold = 1E-4
 
         self.SetScriptName('femrinumericsurfacekspace')
@@ -46,13 +47,17 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
             ['UseExactAlgorithm','useexact','bool',1],
             ['QuadratureOrder','qorder','int',1,'(0,)'],
             ['UseOptimalAlgorithm','useoptimal','bool',1],
+            ['UseMonolithic','usemonolithic','bool',1],
             ['ErrorThreshold','error','float',1,'(0.0,)']
             ])
         self.SetOutputMembers([
             ])
 
     def AcquireKSpaceExact(self,surface,origin,spacing):
-        kSpaceAcquisition = femrinumeric.vtkfemriPolyDataExactKSpaceGenerator()
+        if self.UseMonolithic:
+            kSpaceAcquisition = femrinumeric.vtkfemriPolyDataExactKSpaceGeneratorMonolithic()
+        else:
+            kSpaceAcquisition = femrinumeric.vtkfemriPolyDataExactKSpaceGenerator()
         kSpaceAcquisition.SetInput(self.Surface)
         kSpaceAcquisition.SetKSpaceDimensionality(self.KSpaceDimensionality)
         kSpaceAcquisition.SetMatrix(self.MatrixSize)
