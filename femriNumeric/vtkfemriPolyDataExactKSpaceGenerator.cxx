@@ -85,7 +85,7 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
     
     if (triangle == NULL)
       {
-      vtkErrorMacro("Error: cell not a vtkTriangle, skipping.");
+      //vtkErrorMacro("Error: cell not a vtkTriangle, skipping.");
       continue;
       }
  
@@ -131,9 +131,11 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
     double k_rs = this->Dot(k,x1x2);
     double k_dot_n = this->Dot(k,triangleNormal);
 
-    if (k_s == 0.0) 
+    const double tol = 1E-8;
+
+    if (fabs(k_s) < tol) 
       {
-      if (k_r == 0.0)
+      if (fabs(k_r) < tol)
         {
         value[0] += k_dot_n / (twoPi * k2) * A * sin(twoPi * phi_e);
         value[1] += k_dot_n / (twoPi * k2) * A * cos(twoPi * phi_e);
@@ -144,14 +146,14 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
       continue;
       }
 
-    if (k_r == 0.0) 
+    if (fabs(k_r) < tol) 
       {
       value[0] += k_dot_n / (twoPi * k2) * A * ( cos(twoPi*phi_e)/(pi*k_s) + sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) - cos(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) - cos(twoPi*phi_e)*sin(twoPi*k_s)/(twoPi*twoPi*k_s*k_s));
       value[1] += k_dot_n / (twoPi * k2) * A * (-sin(twoPi*phi_e)/(pi*k_s) + cos(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) + sin(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) - cos(twoPi*phi_e)*cos(twoPi*k_s)/(twoPi*twoPi*k_s*k_s));
       continue;
       }
 
-    if (k_rs == 0.0) 
+    if (fabs(k_rs) < tol) 
       {
       value[0] += k_dot_n / (twoPi * k2) * A * (-sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) + sin(twoPi*k_s)*sin(twoPi*phi_e)/(pi*k_s) + cos(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) + cos(twoPi*phi_e)*sin(twoPi*k_s)/(twoPi*twoPi*k_s*k_s) - cos(twoPi*k_s)*cos(twoPi*phi_e)/(pi*k_s));
       value[1] += k_dot_n / (twoPi * k2) * A * (-cos(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) + cos(twoPi*k_s)*sin(twoPi*phi_e)/(pi*k_s) - sin(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*twoPi*k_s*k_s) + cos(twoPi*phi_e)*cos(twoPi*k_s)/(twoPi*twoPi*k_s*k_s) + sin(twoPi*k_s)*cos(twoPi*phi_e)/(pi*k_s));
