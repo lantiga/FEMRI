@@ -6,6 +6,7 @@ __all__ = [
         'femri3dspherekspace',
         'femriemptykspace',
         'femrikspace',
+        'femrikspacecenter',
         'femrikspaceerror',
         'femrikspacetoimage',
         'femrikspaceshift',

@@ -8,6 +8,7 @@ SET(SCRIPTS_SRCS
   femri3dspherekspace.py
   femriemptykspace.py
   femrikspace.py
+  femrikspacecenter.py
   femrikspaceerror.py
   femrikspacetoimage.py
   femrikspaceshift.py
