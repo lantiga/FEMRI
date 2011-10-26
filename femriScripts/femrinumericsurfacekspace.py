@@ -40,6 +40,8 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         self.UseMonolithic = 0
         self.ErrorThreshold = 1E-4
 
+        self.CellNormalsArrayName = ''
+
         self.SetScriptName('femrinumericsurfacekspace')
         self.SetInputMembers([
             ['Surface','i','vtkPolyData',1,'','','vmtksurfacereader'],
@@ -48,6 +50,7 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
             ['QuadratureOrder','qorder','int',1,'(0,)'],
             ['UseOptimalAlgorithm','useoptimal','bool',1],
             ['UseMonolithic','usemonolithic','bool',1],
+            ['CellNormalsArrayName','cellnormals','str',1],
             ['ErrorThreshold','error','float',1,'(0.0,)']
             ])
         self.SetOutputMembers([
@@ -65,6 +68,8 @@ class femriNumericSurfaceKSpace(femrikspace.femriKSpace):
         kSpaceAcquisition.SetOrigin(origin)
         kSpaceAcquisition.SetAcquireSymmetricKSpace(self.AcquireSymmetricKSpace)
         kSpaceAcquisition.SetMagnetizationValue(self.MagnetizationValue)
+        if self.CellNormalsArrayName:
+            kSpaceAcquisition.SetCellNormalsArrayName(self.CellNormalsArrayName)
         kSpaceAcquisition.Update()
 
         return kSpaceAcquisition.GetOutput()

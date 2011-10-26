@@ -41,6 +41,9 @@ public:
   vtkSetMacro(MagnetizationValue,double);
   vtkGetMacro(MagnetizationValue,double);  
 
+  vtkSetStringMacro(CellNormalsArrayName);
+  vtkGetStringMacro(CellNormalsArrayName);  
+
   virtual void Initialize();
 
   virtual void EvaluateFourierFunction(double frequency[3], double value[2]);
@@ -63,6 +66,7 @@ protected:
   }
 
   double MagnetizationValue;
+  char* CellNormalsArrayName;
 
 private:
   vtkfemriPolyDataExactKSpaceGenerator(const vtkfemriPolyDataExactKSpaceGenerator&);  // Not implemented.

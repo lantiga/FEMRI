@@ -34,12 +34,18 @@ vtkCxxRevisionMacro(vtkfemriPolyDataExactKSpaceGenerator, "$Revision: 1.7 $");
 vtkfemriPolyDataExactKSpaceGenerator::vtkfemriPolyDataExactKSpaceGenerator()
 {
   this->MagnetizationValue = 1.0;
+  this->CellNormalsArrayName = NULL;
 
   this->SetNumberOfInputPorts(1);
 }
 
 vtkfemriPolyDataExactKSpaceGenerator::~vtkfemriPolyDataExactKSpaceGenerator()
 {
+  if (this->CellNormalsArrayName)
+    {
+    delete[] this->CellNormalsArrayName;
+    this->CellNormalsArrayName = NULL;
+    }
 }
 
 int vtkfemriPolyDataExactKSpaceGenerator::FillInputPortInformation(int vtkNotUsed(port), vtkInformation* info)
@@ -57,6 +63,11 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
   vtkDataSet* input = vtkDataSet::SafeDownCast(this->GetInput());
 
   vtkDataArray* normals = input->GetCellData()->GetNormals();
+
+  if (this->CellNormalsArrayName)
+    {
+    normals = input->GetCellData()->GetArray(this->CellNormalsArrayName);
+    }
 
   if (!normals)
     {
@@ -85,28 +96,28 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
     
     if (triangle == NULL)
       {
-      //vtkErrorMacro("Error: cell not a vtkTriangle, skipping.");
+      vtkErrorMacro("Error: cell not a vtkTriangle, skipping.");
       continue;
       }
  
-    if (frequency[0] == 0.0 && frequency[1] == 0.0 && frequency[2] == 0.0)
-      {
-      value[0] += this->MagnetizationValue * triangle->ComputeArea();
-      value[1] += 0.0;
-      continue;
-      }
-
     double A = triangle->ComputeArea();
  
     double triangleNormal[3];
     normals->GetTuple(i,triangleNormal);
 
-    double kdotnt = vtkMath::Dot(frequency,triangleNormal);
-
     double x1[3], x2[3], x3[3];
     triangle->GetPoints()->GetPoint(0,x1);
     triangle->GetPoints()->GetPoint(1,x2);
     triangle->GetPoints()->GetPoint(2,x3);
+
+    if (frequency[0] == 0.0 && frequency[1] == 0.0 && frequency[2] == 0.0)
+      {
+      value[0] += this->MagnetizationValue * A * triangleNormal[2] * (x1[2]+x2[2]+x3[2]) / 3.0;
+      value[1] += 0.0;
+      continue;
+      }
+
+    double kdotnt = vtkMath::Dot(frequency,triangleNormal);
 
     double cross[3];
     vtkTriangle::ComputeNormal(x1,x2,x3,cross);
@@ -133,35 +144,45 @@ void vtkfemriPolyDataExactKSpaceGenerator::EvaluateFourierFunction(double freque
 
     const double tol = 1E-8;
 
+    double kr = k_r;
+    double ks = k_s;
+    double kdotn = k_dot_n;
+    double phi = phi_e;
+
+    //if (fabs(kdotn) < tol) 
+    //  {
+    //  continue;
+    //  }
+
     if (fabs(k_s) < tol) 
       {
       if (fabs(k_r) < tol)
         {
-        value[0] += k_dot_n / (twoPi * k2) * A * sin(twoPi * phi_e);
-        value[1] += k_dot_n / (twoPi * k2) * A * cos(twoPi * phi_e);
+        value[0] += A*kdotn*sin(2*pi*phi)/(2*pi*k2);
+        value[1] += A*kdotn*cos(2*pi*phi)/(2*pi*k2);
         continue;
         }
-      value[0] += -k_dot_n / (twoPi * k2) * (A*sin(twoPi*phi_e)/(twoPi*pi*k_r*k_r) - A*cos(twoPi*phi_e)/(pi*k_r) + A*cos(twoPi*k_r)*sin(twoPi*phi_e)/(twoPi*pi*k_r*k_r) + A*cos(twoPi*phi_e)*sin(twoPi*k_r)/(twoPi*pi*k_r*k_r));
-      value[1] += k_dot_n / (twoPi * k2) * (-A*sin(twoPi*phi_e)/(pi*k_r) - A*cos(twoPi*phi_e)/(twoPi*pi*k_r*k_r) + A*sin(twoPi*k_r)*sin(twoPi*phi_e)/(twoPi*pi*k_r*k_r) - A*cos(twoPi*k_r)*cos(twoPi*phi_e)/(twoPi*pi*k_r*k_r));
+      value[0] += A*kdotn*cos(2*pi*phi)/(2*pi*pi*k2*kr) + A*kdotn*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*kr) - A*kdotn*cos(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*kr) - A*kdotn*cos(2*pi*phi)*sin(2*pi*kr)/(4*pi*pi*pi*k2*kr*kr);
+      value[1] += -A*kdotn*sin(2*pi*phi)/(2*pi*pi*k2*kr) + A*kdotn*cos(2*pi*phi)/(4*pi*pi*pi*k2*kr*kr) - A*kdotn*cos(2*pi*kr)*cos(2*pi*phi)/(4*pi*pi*pi*k2*kr*kr) + A*kdotn*sin(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*kr);
       continue;
       }
 
     if (fabs(k_r) < tol) 
       {
-      value[0] += -k_dot_n / (twoPi * k2) * (-A*cos(twoPi*phi_e)/(pi*k_s) - A*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s) + A*cos(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s) + A*cos(twoPi*phi_e)*sin(twoPi*k_s)/(twoPi*pi*k_s*k_s));
-      value[1] += k_dot_n / (twoPi * k2) * (A*cos(twoPi*phi_e)/(twoPi*pi*k_s*k_s) - A*sin(twoPi*phi_e)/(pi*k_s) + A*sin(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s) - A*cos(twoPi*k_s)*cos(twoPi*phi_e)/(twoPi*pi*k_s*k_s));
+      value[0] += A*kdotn*cos(2*pi*phi)/(2*pi*pi*k2*ks) + A*kdotn*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) - A*kdotn*cos(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) - A*kdotn*cos(2*pi*phi)*sin(2*pi*ks)/(4*pi*pi*pi*k2*ks*ks);
+      value[1] += -A*kdotn*sin(2*pi*phi)/(2*pi*pi*k2*ks) + A*kdotn*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) - A*kdotn*cos(2*pi*ks)*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) + A*kdotn*sin(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks);
       continue;
       }
 
     if (fabs(k_rs) < tol) 
       {
-      value[0] += -k_dot_n / (twoPi * k2) * (A*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s) + A*cos(twoPi*k_s)*cos(twoPi*phi_e)/(pi*k_s) - A*sin(twoPi*k_s)*sin(twoPi*phi_e)/(pi*k_s) - A*cos(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s) - A*cos(twoPi*phi_e)*sin(twoPi*k_s)/(twoPi*pi*k_s*k_s));
-      value[1] += k_dot_n / (twoPi * k2) * (-A*cos(twoPi*phi_e)/(twoPi*pi*k_s*k_s) + A*cos(twoPi*k_s)*sin(twoPi*phi_e)/(pi*k_s) + A*cos(twoPi*phi_e)*sin(twoPi*k_s)/(pi*k_s) + A*cos(twoPi*k_s)*cos(twoPi*phi_e)/(twoPi*pi*k_s*k_s) - A*sin(twoPi*k_s)*sin(twoPi*phi_e)/(twoPi*pi*k_s*k_s));
+      value[0] += -A*kdotn*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) + A*kdotn*sin(2*pi*ks)*sin(2*pi*phi)/(2*pi*pi*k2*ks) - A*kdotn*cos(2*pi*ks)*cos(2*pi*phi)/(2*pi*pi*k2*ks) + A*kdotn*cos(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) + A*kdotn*cos(2*pi*phi)*sin(2*pi*ks)/(4*pi*pi*pi*k2*ks*ks);
+      value[1] += -A*kdotn*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) + A*kdotn*cos(2*pi*ks)*sin(2*pi*phi)/(2*pi*pi*k2*ks) + A*kdotn*cos(2*pi*phi)*sin(2*pi*ks)/(2*pi*pi*k2*ks) - A*kdotn*sin(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks) + A*kdotn*cos(2*pi*ks)*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*ks);
       continue;
       }
 
-    value[0] += - 1.0 / (4.0 * pi3 * k2) * A * k_dot_n / k_s * ((sin(twoPi * (phi_e + k_r)) - sin(twoPi * (phi_e + k_s))) / k_rs - (sin(twoPi * (phi_e + k_r)) - sin(twoPi * (phi_e))) / k_r );
-    value[1] += - 1.0 / (4.0 * pi3 * k2) * A * k_dot_n / k_s * ((cos(twoPi * (phi_e + k_r)) - cos(twoPi * (phi_e + k_s))) / k_rs - (cos(twoPi * (phi_e + k_r)) - cos(twoPi * (phi_e))) / k_r );
+    value[0] += -A*kdotn*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*ks) - A*kdotn*cos(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks)) - A*kdotn*cos(2*pi*phi)*sin(2*pi*kr)/(4*pi*pi*pi*k2*ks*(kr - ks)) + A*kdotn*cos(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*ks) + A*kdotn*cos(2*pi*phi)*sin(2*pi*kr)/(4*pi*pi*pi*k2*kr*ks) + A*kdotn*cos(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks)) + A*kdotn*cos(2*pi*phi)*sin(2*pi*ks)/(4*pi*pi*pi*k2*ks*(kr - ks));
+    value[1] += -A*kdotn*cos(2*pi*phi)/(4*pi*pi*pi*k2*kr*ks) - A*kdotn*sin(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*kr*ks) - A*kdotn*cos(2*pi*kr)*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks)) - A*kdotn*sin(2*pi*ks)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks)) + A*kdotn*cos(2*pi*kr)*cos(2*pi*phi)/(4*pi*pi*pi*k2*kr*ks) + A*kdotn*cos(2*pi*ks)*cos(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks)) + A*kdotn*sin(2*pi*kr)*sin(2*pi*phi)/(4*pi*pi*pi*k2*ks*(kr - ks));
     }
 }
 
